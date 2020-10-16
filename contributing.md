@@ -4,7 +4,7 @@ Contributing Guidelines:
 
 2.Create new branch for features.
 
-3.Strictly follow the commit conventions mentioned here.
+3.Strictly follow the commit conventions mentioned here: http://karma-runner.github.io/latest/dev/git-commit-msg.html
 
 4.Pull latest changes from upstream before pushing your code or creating a new feature branch.
 
