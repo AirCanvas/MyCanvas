@@ -3,12 +3,8 @@ import cv2 as cv
 from collections import deque
 
 # callback function to be passed in trackbar
-
-
 def nothing(x):
     pass
-
-
 # The trackbars needed for adjusting the marker colour
 cv.namedWindow("Color detectors")
 cv.createTrackbar("Upper Hue", "Color detectors", 153, 180, nothing)
@@ -24,11 +20,9 @@ blue_points = [deque(maxlen=1024)]
 # This index will be used to mark the blue_points in particular arrays
 blue_index = 0
 
-
 # Command to access video from webcam
 cap = cv.VideoCapture(0)
 
-# keep looping
 while True:
     # Reading the frame from the camera
     isTrue, frame = cap.read()
@@ -59,7 +53,7 @@ while True:
     cnts, hierarchy = cv.findContours(Mask.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     center = None
 
-    # Ifthe contours are formed
+    # If the contours are formed
     if len(cnts) > 0:
         # sorting the contours to find biggest
         cnt = sorted(cnts, key=cv.contourArea, reverse=True)[0]
