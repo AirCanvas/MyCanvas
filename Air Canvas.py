@@ -10,6 +10,47 @@ import numpy as np
 def empty(a):
     pass
 
+## Defining the HSV values for the blue, orange and green colour
+blue_colour = [109, 114, 48, 131, 228, 113]
+orange_colour = [0, 120, 118, 62, 255, 255]
+green_colour = [41, 89, 94, 71, 200, 255]
+
+##Adding it to an array of colours for future expansion plans.
+myColors = [blue_colour]
+
+## Find colour function which detects the colours mentioned in the array
+def findColor (img, myColors):
+    imgHSV = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+
+    ## Looping through the colours defined to get a mask for each.
+    for color in myColors:
+        ## Making an array of all the minimum values for h, s and v.
+        lower = np.array(color[0:3])
+        ## Making an array of all the maximum values for h, s and v.
+        upper = np.array(color[3:6])
+
+        ## Create a mask for the frame from the values obtained from the trackbar positions.
+        mask = cv.inRange(imgHSV, lower, upper)
+        ## Making a new variable to store the bitwise AND of the image with itself applying the mask.
+        imgNew = cv.bitwise_and(img, img, mask=mask)
+
+        getContours(mask)
+        ## Show masked image.
+        cv.imshow(str(color[0]), mask)
+
+
+## Function to get the contour of the detected masked image and draw bounding box around it
+def getContours(img):
+    contours, hierarchy = cv.findContours(img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    # print("Contours : ", contours)
+    for cnt in contours:
+        area = cv.contourArea(cnt)
+        if area > 20:
+            cv.drawContours(boundingFrame, cnt, -1, (255, 0, 0), 3)
+            peri = cv.arcLength(cnt, True)  # The 'true' here is to ensure we're detecting closed stuff
+            approx = cv.approxPolyDP(cnt, 0.02 * peri, True)  # To get the corner points?
+            x, y, w, h = cv.boundingRect(approx)
+
 
 ## Used to get the desired colour.
 def colour_picker():
@@ -73,12 +114,6 @@ def colour_picker():
 
 #########################################################################################
 
-
-# Define the upper and lower boundaries for a color to be considered. Currently red.
-# Can be changed later with the detector function which will be added.
-Lower_red = np.array([161, 155, 84])
-Upper_red = np.array([179, 255, 255])
-
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 
 colorIndex = 0
@@ -98,7 +133,7 @@ while True:
     # Grab the current frame and flip it to get desired direction of stylus
     (grabbed, frame) = camera.read()
     frame = cv.flip(frame, 1)
-
+    boundingFrame = frame.copy()
     # Check to see if we have reached the end of the video (useful when input is a video file not a live video stream)
     if not grabbed:
         break
@@ -120,6 +155,8 @@ while True:
 
     ## Show each frame until 'q' is clicked.
     cv.imshow('frame', frame)
+    findColor(frame, myColors)
+    cv.imshow('frameD', boundingFrame)
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
 
