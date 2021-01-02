@@ -4,7 +4,7 @@ import numpy as np
 
 
 #######################################################################################
-## FUNCTIONS ##
+                                ## FUNCTIONS ##
 #######################################################################################
 
 def empty(a):
@@ -15,13 +15,21 @@ blue_colour = [109, 114, 48, 131, 228, 113]
 orange_colour = [0, 120, 118, 62, 255, 255]
 green_colour = [41, 89, 94, 71, 200, 255]
 
+## Defining the point for drawing the rectangles for palette
+clear_rect = [(565 - 40, 5), (605 - 40, 45)]
+blue_rect = [(625 - 40, 5), (665 - 40, 45)]
+green_rect = [(565 - 40, 65), (605 - 40, 105)]
+yellow_rect = [(625 - 40, 65), (665 - 40, 105)]
+red_rect = [(565 - 40, 125), (605 - 40, 165)]
+
 ##Adding it to an array of colours for future expansion plans.
 myColors = [blue_colour]
 
 ## Find colour function which detects the colours mentioned in the array
 def findColor (img, myColors):
     imgHSV = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-
+    newPoints = []
+    paintcolor = (0, 0, 0)
     ## Looping through the colours defined to get a mask for each.
     for color in myColors:
         ## Making an array of all the minimum values for h, s and v.
@@ -33,24 +41,56 @@ def findColor (img, myColors):
         mask = cv.inRange(imgHSV, lower, upper)
         ## Making a new variable to store the bitwise AND of the image with itself applying the mask.
         imgNew = cv.bitwise_and(img, img, mask=mask)
+        kernel = np.ones((5, 5), np.uint8)
 
-        getContours(mask)
+        ##eroding and dilating the mask
+        erosion = cv.erode(mask, kernel, iterations = 1)
+        dilation = cv.erode(mask, kernel, iterations = 1)
+        ##applying opening and closing on the mask in order to cancel out false negatives.
+        opening = cv.morphologyEx( mask, cv.MORPH_OPEN, kernel)
+        closing = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+        x,y= getContours(closing)
+        cv.circle(frame, (x,y), 10, (0, 0, 255), cv.FILLED)
+        ## If not point is detected, i.e x,y = 0,0
+        if x!=0 and y!=0:
+            ## If the stylus is detected over the drawn rectangles, change the paintcolour.
+            if (x,y)<red_rect[0] and (x,y)>red_rect[1]:
+                paintcolor = colors[2]
+            if (x,y)<blue_rect[0] and (x,y)>blue_rect[1]:
+                paintcolor = colors[0]
+            if (x,y)<yellow_rect[0] and (x,y)>yellow_rect[1]:
+                paintcolor = colors[3]
+            if (x,y)<green_rect[0] and (x,y)>green_rect[1]:
+                paintcolor = colors[1]
+            ##append the points to newPoints
+            newPoints.append([x, y, paintcolor])
         ## Show masked image.
-        cv.imshow(str(color[0]), mask)
+        # cv.imshow(str(color[0]), mask)
+        # cv.imshow(str(color[1]), erosion)
+        # cv.imshow(str(color[2]), dilation)
+        # cv.imshow("Opening", opening)
+        #cv.imshow("Close", closing)
+
+    return newPoints
+
+
+myPoints = []  #[x , y, colorId]
+
 
 
 ## Function to get the contour of the detected masked image and draw bounding box around it
 def getContours(img):
     contours, hierarchy = cv.findContours(img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     # print("Contours : ", contours)
+    x, y, w, h = 0, 0, 0, 0
     for cnt in contours:
         area = cv.contourArea(cnt)
         if area > 20:
-            cv.drawContours(boundingFrame, cnt, -1, (255, 0, 0), 3)
+            cv.drawContours(boundingFrame, cnt, -1, (255,255, 255), 3)
             peri = cv.arcLength(cnt, True)  # The 'true' here is to ensure we're detecting closed stuff
             approx = cv.approxPolyDP(cnt, 0.02 * peri, True)  # To get the corner points?
             x, y, w, h = cv.boundingRect(approx)
-
+    return x+w//2,y ##return the tip of the detected stylus
 
 ## Used to get the desired colour.
 def colour_picker():
@@ -101,6 +141,7 @@ def colour_picker():
         ## Making a new variable to store the bitwise AND of the image with itself applying the mask.
         imgNew = cv.bitwise_and(img2, img2, mask=mask)
 
+
         ## Show both the image and masked image.
         cv.imshow("mask", imgNew)
         cv.imshow("Out", img2)
@@ -110,6 +151,12 @@ def colour_picker():
         ##If 'q' is pressed, loop breaks and operation stops.
         if (cv.waitKey(1) & 0xFF == ord('q')):
             break
+
+##Looping through the points and drawing the points as circles.
+def drawOnCanvas( myPoints):
+    for point in myPoints:
+        cv.circle(paintWindow,(point[0], point[1]), 10, point[2], cv.FILLED)
+
 
 
 #########################################################################################
@@ -138,13 +185,13 @@ while True:
     if not grabbed:
         break
 
-    ## Draw the colour palette on the left hand side.
+    ## Draw the colour palette on the right hand side.
     ## Open to editing and reshaping as well as alignment.
-    frame = cv.rectangle(frame, (565 - 40, 5), (605 - 40, 45), (0, 0, 0), 1)
-    frame = cv.rectangle(frame, (625 - 40, 5), (665 - 40, 45), colors[0], -1)
-    frame = cv.rectangle(frame, (565 - 40, 65), (605 - 40, 105), colors[1], -1)
-    frame = cv.rectangle(frame, (625 - 40, 65), (665 - 40, 105), colors[3], -1)
-    frame = cv.rectangle(frame, (565 - 40, 125), (605 - 40, 165), colors[2], -1)
+    frame = cv.rectangle(frame, clear_rect[0], clear_rect[1], (0, 0, 0), 1)
+    frame = cv.rectangle(frame, blue_rect[0], blue_rect[1], colors[0], -1)
+    frame = cv.rectangle(frame, green_rect[0], green_rect[1], colors[1], -1)
+    frame = cv.rectangle(frame, yellow_rect[0],yellow_rect[1], colors[3], -1)
+    frame = cv.rectangle(frame, red_rect[0], red_rect[1], colors[2], -1)
 
     ## Colours can be named as well if desired.
     # cv.putText(frame, "CLEAR ALL", (49, 33), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
@@ -154,9 +201,15 @@ while True:
     # cv.putText(frame, "YELLOW", (520, 33), cv.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1, cv.LINE_AA)
 
     ## Show each frame until 'q' is clicked.
+    new_points = findColor(frame, myColors)
+    if len(new_points)!=0:
+        for newpoint in new_points:
+            myPoints.append(newpoint)
+    if len(myPoints)!=0:
+        drawOnCanvas(myPoints)
     cv.imshow('frame', frame)
-    findColor(frame, myColors)
-    cv.imshow('frameD', boundingFrame)
+
+    cv.imshow('frameD', paintWindow)
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
 
