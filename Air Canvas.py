@@ -16,20 +16,20 @@ orange_colour = [0, 120, 118, 62, 255, 255]
 green_colour = [41, 89, 94, 71, 200, 255]
 
 ## Defining the point for drawing the rectangles for palette
-clear_rect = [(565 - 40, 5), (605 - 40, 45)]
+clear_rect = [(625 - 40, 185), (665 - 40, 225)]
 blue_rect = [(625 - 40, 5), (665 - 40, 45)]
-green_rect = [(565 - 40, 65), (605 - 40, 105)]
+green_rect = [(625 - 40, 245), (665 - 40, 305)]
 yellow_rect = [(625 - 40, 65), (665 - 40, 105)]
-red_rect = [(565 - 40, 125), (605 - 40, 165)]
+red_rect = [(625 - 40, 125), (655 - 40, 165)]
 
 ##Adding it to an array of colours for future expansion plans.
 myColors = [blue_colour]
 
 ## Find colour function which detects the colours mentioned in the array
-def findColor (img, myColors):
+def findColor (img, myColors, paintcolor):
     imgHSV = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     newPoints = []
-    paintcolor = (0, 0, 0)
+
     ## Looping through the colours defined to get a mask for each.
     for color in myColors:
         ## Making an array of all the minimum values for h, s and v.
@@ -50,17 +50,21 @@ def findColor (img, myColors):
         opening = cv.morphologyEx( mask, cv.MORPH_OPEN, kernel)
         closing = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
         x,y= getContours(closing)
-        cv.circle(frame, (x,y), 10, (0, 0, 255), cv.FILLED)
+        cv.circle(frame, (x,y), 10, paintcolor, cv.FILLED)
         ## If not point is detected, i.e x,y = 0,0
         if x!=0 and y!=0:
             ## If the stylus is detected over the drawn rectangles, change the paintcolour.
-            if (x,y)<red_rect[0] and (x,y)>red_rect[1]:
+            if red_rect[0][0]<x<red_rect[1][0] and red_rect[0][1]<y<red_rect[1][1] :
+                print("Detecting red at ", x+40, y)
                 paintcolor = colors[2]
-            if (x,y)<blue_rect[0] and (x,y)>blue_rect[1]:
+            elif blue_rect[0][0]<x<blue_rect[1][0] and blue_rect[0][1]<y<blue_rect[1][1] :
+                print("Detecting blue at ", x+40, y)
                 paintcolor = colors[0]
-            if (x,y)<yellow_rect[0] and (x,y)>yellow_rect[1]:
+            elif yellow_rect[0][0]<x<yellow_rect[1][0] and yellow_rect[0][1]<y<yellow_rect[1][1] :
+                print("Detecting yellow at ", x+40, y)
                 paintcolor = colors[3]
-            if (x,y)<green_rect[0] and (x,y)>green_rect[1]:
+            elif green_rect[0][0]<x<green_rect[1][0] and green_rect[0][1]<y<green_rect[1][1] :
+                print("Detecting green at ", x+40, y)
                 paintcolor = colors[1]
             ##append the points to newPoints
             newPoints.append([x, y, paintcolor])
@@ -71,7 +75,7 @@ def findColor (img, myColors):
         # cv.imshow("Opening", opening)
         #cv.imshow("Close", closing)
 
-    return newPoints
+    return newPoints, paintcolor
 
 
 myPoints = []  #[x , y, colorId]
@@ -174,7 +178,7 @@ cv.imshow("Canvas", paintWindow)
 
 # Load the video
 camera = cv.VideoCapture(0)
-
+paintcolor = (0, 0, 0)
 # Keep looping throught the frames.
 while True:
     # Grab the current frame and flip it to get desired direction of stylus
@@ -188,10 +192,10 @@ while True:
     ## Draw the colour palette on the right hand side.
     ## Open to editing and reshaping as well as alignment.
     frame = cv.rectangle(frame, clear_rect[0], clear_rect[1], (0, 0, 0), 1)
-    frame = cv.rectangle(frame, blue_rect[0], blue_rect[1], colors[0], -1)
-    frame = cv.rectangle(frame, green_rect[0], green_rect[1], colors[1], -1)
-    frame = cv.rectangle(frame, yellow_rect[0],yellow_rect[1], colors[3], -1)
-    frame = cv.rectangle(frame, red_rect[0], red_rect[1], colors[2], -1)
+    frame = cv.rectangle(frame, blue_rect[0], blue_rect[1], colors[0], 2)
+    frame = cv.rectangle(frame, green_rect[0], green_rect[1], colors[1], 2)
+    frame = cv.rectangle(frame, yellow_rect[0],yellow_rect[1], colors[3], 2)
+    frame = cv.rectangle(frame, red_rect[0], red_rect[1], colors[2], 2)
 
     ## Colours can be named as well if desired.
     # cv.putText(frame, "CLEAR ALL", (49, 33), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
@@ -201,7 +205,8 @@ while True:
     # cv.putText(frame, "YELLOW", (520, 33), cv.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1, cv.LINE_AA)
 
     ## Show each frame until 'q' is clicked.
-    new_points = findColor(frame, myColors)
+    new_points, paintcolor = findColor(frame, myColors, paintcolor)
+    print(paintcolor)
     if len(new_points)!=0:
         for newpoint in new_points:
             myPoints.append(newpoint)
