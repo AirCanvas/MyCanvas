@@ -18,9 +18,22 @@ green_colour = [41, 89, 94, 71, 200, 255]
 ## Defining the point for drawing the rectangles for palette
 clear_rect = [(625 - 40, 185), (665 - 40, 225)]
 blue_rect = [(625 - 40, 5), (665 - 40, 45)]
-green_rect = [(625 - 40, 245), (665 - 40, 305)]
+green_rect = [(625 - 40, 245), (665 - 40, 285)]
 yellow_rect = [(625 - 40, 65), (665 - 40, 105)]
-red_rect = [(625 - 40, 125), (655 - 40, 165)]
+red_rect = [(625 - 40, 125), (665 - 40, 165)]
+brown_rect = [(625 - 40, 305), (665 - 40, 345)]
+orange_rect = [(625 - 40, 365), (665 - 40, 405)]
+eraser_rect = [(625 - 40, 425), (665 - 40, 465)]
+
+
+colors = [(255, 0, 0), ##blue
+          (0, 255, 0),  ##green
+          (0, 0, 255),  ##red
+          (0, 255, 255), ##yellow
+          (255, 0 ,255),  ## purple
+          (255, 255, 0), ##cyan
+          (200, 150 , 0)]
+
 
 ##Adding it to an array of colours for future expansion plans.
 myColors = [blue_colour, orange_colour, green_colour]
@@ -49,8 +62,11 @@ def findColor (img, myColors, paintcolor, clear):
         ##applying opening and closing on the mask in order to cancel out false negatives.
         opening = cv.morphologyEx( mask, cv.MORPH_OPEN, kernel)
         closing = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
-        x,y= getContours(opening)
-        cv.circle(frame, (x,y), 10, paintcolor, cv.FILLED)
+        x,y,detected= getContours(opening)
+        if(detected):
+            cv.circle(frame, (x,y), 10, paintcolor, cv.FILLED)
+        else:
+            cv.circle(frame, (x,y), 10, paintcolor, 2)
         ## If not point is detected, i.e x,y = 0,0
         if x!=0 and y!=0:
             ## If the stylus is detected over the drawn rectangles, change the paintcolour.
@@ -66,13 +82,23 @@ def findColor (img, myColors, paintcolor, clear):
             elif green_rect[0][0]<x<green_rect[1][0] and green_rect[0][1]<y<green_rect[1][1] :
                 # print("Detecting green at ", x+40, y)
                 paintcolor = colors[1]
+            elif brown_rect[0][0]<x<brown_rect[1][0] and brown_rect[0][1]<y<brown_rect[1][1] :
+                # print("Detecting green at ", x+40, y)
+                paintcolor = colors[4]
+            elif orange_rect[0][0]<x<orange_rect[1][0] and orange_rect[0][1]<y<orange_rect[1][1] :
+                # print("Detecting green at ", x+40, y)
+                paintcolor = colors[5]
+            elif eraser_rect[0][0]<x<eraser_rect[1][0] and eraser_rect[0][1]<y<eraser_rect[1][1] :
+                # print("Detecting green at ", x+40, y)
+                paintcolor = colors[6]
             elif clear_rect[0][0] < x < clear_rect[1][0] and clear_rect[0][1] < y < clear_rect[1][1]:
                 # print("Cleared screen")
                 clear = True
                 paintcolor = (0, 0, 0)
                 # print(clear)
             ##append the points to newPoints
-            newPoints.append([x, y, paintcolor])
+            if(detected):
+                newPoints.append([x, y, paintcolor])
         ## Show masked image.
         # cv.imshow(str(color[0]), mask)
         # cv.imshow(str(color[1]), erosion)
@@ -96,13 +122,13 @@ def getContours(img):
     for cnt in contours:
         area = cv.contourArea(cnt)
         # print( area )
+        cv.drawContours(boundingFrame, cnt, -1, (255, 255, 255), 3)
+        peri = cv.arcLength(cnt, True)  # The 'true' here is to ensure we're detecting closed stuff
+        approx = cv.approxPolyDP(cnt, 0.02 * peri, True)  # To get the corner points?
+        x, y, w, h = cv.boundingRect(approx)
         if area > 500:
-            cv.drawContours(boundingFrame, cnt, -1, (255,255, 255), 3)
-            peri = cv.arcLength(cnt, True)  # The 'true' here is to ensure we're detecting closed stuff
-            approx = cv.approxPolyDP(cnt, 0.02 * peri, True)  # To get the corner points?
-            x, y, w, h = cv.boundingRect(approx)
-            return x+w//2,y ##return the tip of the detected stylus
-    return 0,0 ##If not detected, return 0,0
+            return x+w//2,y,True ##return the tip of the detected stylus
+    return x+w//2,y,False ##If not detected, return 0,0
 
 ## Used to get the desired colour.
 def colour_picker():
@@ -179,7 +205,6 @@ def drawOnCanvas( myPoints, paintWindow):
 
 #########################################################################################
 
-colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 colorIndex = 0
 print(" ############################   AIR CANVAS   ############################\n"
       "   This is a basic project based on computer vision made in OpenCV Python which enables \n"
@@ -223,9 +248,12 @@ if choice == 1:
         frame = cv.rectangle(frame, green_rect[0], green_rect[1], colors[1], 2)
         frame = cv.rectangle(frame, yellow_rect[0],yellow_rect[1], colors[3], 2)
         frame = cv.rectangle(frame, red_rect[0], red_rect[1], colors[2], 2)
-
+        frame = cv.rectangle(frame, brown_rect[0], brown_rect[1], colors[4], 2)
+        frame = cv.rectangle(frame, orange_rect[0], orange_rect[1], colors[5], 2)
+        frame = cv.rectangle(frame, eraser_rect[0], eraser_rect[1], colors[6], 2)
+        # colour[5] is eraser
         ## Colours can be named as well if desired.
-        # cv.putText(frame, "CLEAR ALL", (49, 33), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv.LINE_AA)
+        cv.putText(frame, "CLEAR ALL", (625-45, 185+50), cv.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1, cv.LINE_AA)
         # cv.putText(frame, "BLUE", (185, 33), cv.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         # cv.putText(frame, "GREEN", (298, 33), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         # cv.putText(frame, "RED", (420, 33), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv.LINE_AA)
